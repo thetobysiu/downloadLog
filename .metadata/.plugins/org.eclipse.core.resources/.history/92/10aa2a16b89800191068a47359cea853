@@ -1,0 +1,67 @@
+package test;
+
+import java.sql.*;
+
+public class test {
+ 
+    static final String JDBC_DRIVER = "com.mysql.cj.jdbc.Driver";  
+    static final String DB_URL = "jdbc:mysql://localhost:3306/download_log?useSSL=false&serverTimezone=UTC";
+
+    static final String USER = "root";
+    static final String PASS = "P@ssw0rd1234!";
+ 
+    public static void main(String[] args) {
+        Connection conn = null;
+        Statement stmt = null;
+        try{
+
+            Class.forName(JDBC_DRIVER);
+        
+            System.out.println("connecting...");
+            conn = DriverManager.getConnection(DB_URL,USER,PASS);
+        
+            // query
+            System.out.println("querying...");
+            stmt = conn.createStatement();
+            String sql;
+            sql = "SELECT TIME,IP,LANG FROM tb_download_log";
+            ResultSet rs = stmt.executeQuery(sql);
+        
+            // results
+            while(rs.next()){
+                // querying
+                String time  = rs.getString("TIME");
+                String ip = rs.getString("IP");
+                int lang = rs.getInt("LANG");
+    
+                // out
+                System.out.print("TIME: " + time);
+                System.out.print(", IP: " + ip);
+                System.out.print(", LANG: " + lang);
+                System.out.print("\n");
+            }
+            // close
+            rs.close();
+            stmt.close();
+            conn.close();
+        }catch(SQLException se){
+            // 处理 JDBC 错误
+            se.printStackTrace();
+        }catch(Exception e){
+            // 处理 Class.forName 错误
+            e.printStackTrace();
+        }finally{
+            // 关闭资源
+            try{
+                if(stmt!=null) stmt.close();
+            }catch(SQLException se2){
+            }// 什么都不做
+            try{
+                if(conn!=null) conn.close();
+            }catch(SQLException se){
+                se.printStackTrace();
+            }
+        }
+        System.out.println("Goodbye!");
+    }
+}

@@ -1,0 +1,88 @@
+package main;
+import java.sql.Timestamp;
+
+public class downloadLog_var implements java.io.Serializable{
+    /**
+	 * 
+	 */
+    private static final long serialVersionUID = 1L;
+    private String filename;
+    private String ip;
+    private String issue;
+    private int lang;
+    private Double loginId;
+    private String productId;
+    private String sessionId;
+    private Timestamp Time;
+    private String title;
+    private String useragent;
+
+// SID and LID
+    private String sid;
+    private String lid;
+    public String getSid() { return sid.trim();}
+    public String getLid() { return lid.trim();}
+    public void setSid(String pSid) { this.sid = pSid; }
+    public void setLid(String pLid) { this.lid = pLid; }
+// end of change
+    public String getFilename() {
+        return filename;
+    }
+    public void setFilename(String filename) {
+        this.filename = filename;
+    }
+    public String getIP() {
+        return ip;
+    }
+    public void setIP(String ip) {
+        this.ip = ip;
+    }
+    public String getIssue() {
+        return issue;
+    }
+    public void setIssue(String issue) {
+        this.issue = issue;
+    }
+    public int getLang() {
+        return lang;
+    }
+    public void setLang(int lang) {
+        this.lang = lang;
+    }
+    public Double getLoginId() {
+        return loginId;
+    }
+    public void setLoginId(Double loginId) {
+        this.loginId = loginId;
+    }
+    public String getProductId() {
+        return productId;
+    }
+    public void setProductId(String productId) {
+        this.productId = productId;
+    }
+    public String getSessionId() {
+        return sessionId.trim();
+    }
+    public void setSessionId(String sessionId) {
+        this.sessionId = sessionId;
+    }
+    public Timestamp getTime() {
+        return Time;
+    }
+    public void setTime(Timestamp timestamp) {
+        this.Time = timestamp;
+    }
+    public String getTitle() {
+        return title;
+    }
+    public void setTitle(String title) {
+        this.title = title;
+    }
+    public String getUseragent() {
+        return useragent;
+    }
+    public void setUseragent(String useragent) {
+        this.useragent = useragent;
+    }
+}

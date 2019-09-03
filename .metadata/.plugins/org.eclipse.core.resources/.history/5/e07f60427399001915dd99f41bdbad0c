@@ -1,0 +1,236 @@
+package main;
+import java.io.*;
+import java.util.*;
+import java.util.Date;
+import java.text.*;
+import java.sql.*;
+
+public class downloadLog {
+	static final String JDBC_DRIVER = "com.mysql.cj.jdbc.Driver";  
+    static final String DB_URL = "jdbc:mysql://localhost:3306/download_log?useSSL=false&serverTimezone=UTC";
+
+    static final String USER = "root";
+    static final String PASS = "P@ssw0rd1234!";
+	public static Connection getConnection() throws Exception {
+		Connection conn = null;
+        try{
+
+            Class.forName(JDBC_DRIVER);
+            System.out.println("connecting...");
+            conn = DriverManager.getConnection(DB_URL,USER,PASS);
+            return conn;
+        }
+		catch(Exception e){
+			throw new Exception (e.getMessage());
+		}
+	}
+	public static void main(String[] args) {
+		System.out.println((new SimpleDateFormat("yyyy-MM-dd HH:mm:SS:ss")).format(new Date()) + " - DownloadLog begin");
+		String downLoadSql = "select * from tb_download_log where 1=1 ";
+		String fromDate = null;
+		String toDate = null;
+		java.util.Date dFrom = null;
+        java.util.Date dTo = null;
+        
+		for (String arg : args) {
+			if (arg.contains("-?")) {
+				System.out.println("-f:YYYYMMDD \tfromDate");
+				System.out.println("-t:YYYYMMDD \ttoDate");
+				return;
+			}
+			else if (arg.contains("-f:"))
+				fromDate = arg.replaceAll("-f:", "");
+			else if (arg.contains("-t:"))
+				toDate = arg.replaceAll("-t:", "");
+			else {
+				System.out.println("-? for options");
+				return;
+			}
+		}
+		
+		if ((null != fromDate && fromDate.trim().length() > 0) && (null != toDate && toDate.trim().length() > 0)) {
+            downLoadSql += " and TIME >= ? and TIME < ? ";             
+        }
+		else if (null != fromDate && fromDate.trim().length() > 0) {
+            downLoadSql += " and TIME >= ? ";
+        }
+		else if (null != toDate && toDate.trim().length() > 0) {
+            downLoadSql += " and TIME < ?  ";
+        }
+		else {
+		//	downLoadSql += " and SEARCHTIME >= add_months(sysdate, -1) and SEARCHTIME < sysdate";
+		 downLoadSql += " and date_format(TIME,'%Y-%m') = date_format(DATE_SUB(curdate(), INTERVAL 1 MONTH),'%Y-%m') "; 
+        }
+		
+		if (null != fromDate && fromDate.trim().length() > 0) {
+            try {
+				dFrom = (new SimpleDateFormat("yyyyMMdd")).parse(fromDate);
+			} catch (ParseException e) {
+				System.err.println("fromDate parse YYYYMMDD: " + e.getMessage());
+				e.printStackTrace();
+			}
+        }
+        if (null != toDate && toDate.trim().length() > 0) {
+        	try {
+				dTo = (new SimpleDateFormat("yyyyMMdd")).parse(toDate);
+			} catch (ParseException e) {
+				System.err.println("toDate parse YYYYMMDD: " + e.getMessage());
+				e.printStackTrace();
+			}
+        }
+        downLoadSql += " order by TIME desc";
+        
+        System.out.println((new SimpleDateFormat("yyyy-MM-dd HH:mm:SS:ss")).format(new Date()) + " - DownloadLog DB begin "+downLoadSql);
+        Connection conn;
+		try {
+			conn = getConnection();
+		} catch (Exception e) {
+			System.err.println("DB connection error: " + e.getMessage());
+			e.printStackTrace();
+			return;
+		}
+		PreparedStatement pstmt;
+		try {
+			pstmt = conn.prepareStatement(downLoadSql.toString());
+		} catch (SQLException e) {
+			System.err.println("DB sql error: " + e.getMessage());
+			e.printStackTrace();
+			return;
+		}
+        if ((null != fromDate && fromDate.trim().length() > 0) && (null != toDate && toDate.trim().length() > 0)) {
+            try {
+				pstmt.setTimestamp(1,new Timestamp(dFrom.getTime()));
+				pstmt.setTimestamp(2,new Timestamp(dTo.getTime()));
+				System.out.println((new SimpleDateFormat("yyyy-MM-dd HH:mm:SS:ss")).format(new Date()) + " - DownloadLog DB parameter dFrom: "+dFrom.toString()+" dTo: "+dTo.toString());
+			} catch (SQLException e) {
+				System.err.println("DB sql parameters error: " + e.getMessage());
+				e.printStackTrace();
+			}
+        }
+        else{
+            if (null != fromDate && fromDate.trim().length() > 0) {
+                try {
+					pstmt.setTimestamp(1,new Timestamp(dFrom.getTime()));
+					System.out.println((new SimpleDateFormat("yyyy-MM-dd HH:mm:SS:ss")).format(new Date()) + " - DownloadLog DB parameter dFrom: "+dFrom.toString());
+				} catch (SQLException e) {
+					System.err.println("DB sql fromDate error: " + e.getMessage());
+					e.printStackTrace();
+				}
+            }
+            if (null != toDate && toDate.trim().length() > 0) {
+                try {
+					pstmt.setTimestamp(1,new Timestamp(dTo.getTime()));
+					System.out.println((new SimpleDateFormat("yyyy-MM-dd HH:mm:SS:ss")).format(new Date()) + " - DownloadLog DB parameter dTo: "+dTo.toString());
+				} catch (SQLException e) {
+					System.err.println("DB sql toDate error: " + e.getMessage());
+					e.printStackTrace();
+				}
+            }               
+        }
+        ResultSet rs;
+		try {
+			rs = pstmt.executeQuery();
+		} catch (SQLException e) {
+			System.err.println("DB sql execute error: " + e.getMessage());
+			e.printStackTrace();
+			return;
+		}
+        
+        List<downloadLog_var> downloadLogList = new ArrayList<downloadLog_var>();
+        try {
+			while (null != rs && rs.next()) {
+			    downloadLog_var log = new downloadLog_var();
+				log.setFilename(rs.getString("FILENAME"));
+				log.setIP(rs.getString("IP"));
+				log.setIssue(rs.getString("ISSUE"));
+				log.setLang(rs.getInt("LANG"));
+				log.setLoginId(rs.getDouble("LOGINID"));
+				log.setProductId(rs.getString("PRODUCT_ID"));
+				log.setSessionId(rs.getString("SESSIONID"));
+				log.setTime(rs.getTimestamp("TIME"));
+				log.setTitle(rs.getString("TITLE"));
+				log.setUseragent(rs.getString("USERAGENT"));
+				// SID and LID
+				log.setSid(rs.getString("SID"));
+				log.setLid(rs.getString("LID"));
+				// end of change
+			    downloadLogList.add(log);
+			}
+		} catch (SQLException e) {
+			System.err.println("DB sql record error: " + e.getMessage());
+			e.printStackTrace();
+		}
+        
+        System.out.println((new SimpleDateFormat("yyyy-MM-dd HH:mm:SS:ss")).format(new Date()) + " - DownloadLog "+downloadLogList.size()+" write log begin");
+		// download search log
+		if (null != downloadLogList && downloadLogList.size() > 0) {
+			StringBuffer logStr = new StringBuffer();
+			logStr.append("Filename,IP,Issue,Lang,Login ID,Product ID,Session ID,Time,SID,LID"+ "\n");
+			for (int f = 0; f < downloadLogList.size(); f++) {
+				downloadLog_var log = downloadLogList.get(f);
+				logStr.append("\"" + log.getFilename() + "\"" + "," + "\"" 
+						+ log.getIP() + "\"" + "," + "\"" + log.getIssue() +"\"" + "," + log.getLang() + "," + log.getLoginId() + "," + "\""
+						+ log.getProductId() + "\"" + "," + "\"" + log.getSessionId() +"\"" + ","
+						+ (new SimpleDateFormat("dd/MM/yyyy HH:mm:ss")).format(log.getTime()) + "," 
+						+ log.getSid()+","+log.getLid()+ "\n");
+			}
+
+			Writer out = null;
+			try {
+				out = new BufferedWriter(new OutputStreamWriter(new FileOutputStream("downloadLog_var.csv"), "UTF-8"));
+			} catch (UnsupportedEncodingException e1) {
+				System.err.println("Unsupported Encoding: " + e1.getMessage());
+				e1.printStackTrace();
+			} catch (FileNotFoundException e1) {
+				System.err.println("File create error: " + e1.getMessage());
+				e1.printStackTrace();
+			}
+			try {
+				out.write(logStr.toString());
+			} catch (IOException e1) {
+				System.err.println("File IO error: " + e1.getMessage());
+				e1.printStackTrace();
+			}
+			try {
+				out.flush();
+			} catch (IOException e1) {
+				System.err.println("File IO error: " + e1.getMessage());
+				e1.printStackTrace();
+			}
+			finally {
+				try {
+					out.close();
+				} catch (IOException e1) {
+					System.err.println("File IO error: " + e1.getMessage());
+					e1.printStackTrace();
+				}
+			}
+			out = null;
+//			FileOutputStream fs = null;
+//			try {
+//				fs = new FileOutputStream("/bd-cnsw3/home/cnsw3exp11/cronjob/downloadLog_var.csv");
+//			} catch (FileNotFoundException e) {
+//				System.err.println("File create error: " + e.getMessage());
+//				e.printStackTrace();
+//				return;
+//			}
+//			try {
+//				fs.write(logStr.toString().getBytes());
+//				fs.flush();
+//			} catch (IOException e) {
+//				System.err.println("File IO error: " + e.getMessage());
+//				e.printStackTrace();
+//			}
+//			finally {
+//				try {
+//					fs.close();
+//				} catch (IOException e) {
+//					System.err.println("File close error: " + e.getMessage());
+//					e.printStackTrace();
+//				}
+//			}
+//			fs = null;
+		}
+		System.out.println((new SimpleDateFormat("yyyy-MM-dd HH:mm:SS:ss")).format(new Date()) + " - DownloadLog end");
+	}
+}
